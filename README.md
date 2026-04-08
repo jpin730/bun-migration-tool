@@ -4,11 +4,9 @@ This repository contains a personal migration tool from Firebase to MongoDB Atla
 
 ## Getting Started
 
-1. **Use the correct Node.js version** via [fnm](https://github.com/Schniz/fnm) (recommended) or [nvm](https://github.com/nvm-sh/nvm):
+1. **Install Bun:**
 
-   ```bash
-   fnm use   # or: nvm use
-   ```
+   Follow the instructions on the [Bun website](https://bun.sh/) to install Bun on your machine.
 
 2. **Install dependencies:**
 
