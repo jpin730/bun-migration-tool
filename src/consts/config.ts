@@ -1,6 +1,5 @@
 export const config = {
-  source: {
-    projectId: process.env.SOURCE_PROJECT_ID ?? '',
-    collectionName: process.env.SOURCE_COLLECTION_NAME ?? '',
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID ?? '',
   },
 } as const

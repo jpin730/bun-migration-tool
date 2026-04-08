@@ -1,7 +1,7 @@
-import { SourceService } from './services/SourceService'
+import { FirebaseService } from './services/FirebaseService'
 
-const sourceService = new SourceService()
+const firebaseService = new FirebaseService()
 
-const sourceDocuments = await sourceService.getSourceDocuments()
+const firebaseCertifications = await firebaseService.getCertifications()
 
-console.table(sourceDocuments.at(0))
+console.table(firebaseCertifications)
