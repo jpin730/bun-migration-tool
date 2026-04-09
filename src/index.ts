@@ -33,6 +33,15 @@ if (certificate) {
     issuer: new Types.ObjectId(insertedIssuer.id),
   })
 }
+
 await mongoDBService.disconnect()
+
+const mongoDBImagePublicIds = mongoDBService.getCertificateImagePublicIds()
+const cloudinaryImages = await cloudinaryService.getAllImages()
+const imagePublicIdsToDelete = cloudinaryImages
+  .filter(({ public_id }) => !mongoDBImagePublicIds.includes(public_id))
+  .map(({ public_id }) => public_id)
+
+await cloudinaryService.deleteImages(imagePublicIdsToDelete)
 
 process.exit(0)

@@ -98,19 +98,27 @@ export class MongoDBService {
     return certificates.map((c) => c.toJSON() as unknown as WithId<MongoDBCertificate>)
   }
 
-  async insertCertificate(certificate: MongoDBCertificate): Promise<boolean> {
-    if (this.certificatesMap.has(certificate.legacyId)) {
+  async insertCertificate(data: MongoDBCertificate): Promise<boolean> {
+    if (this.certificatesMap.has(data.legacyId)) {
       return false
     }
 
-    const insertedCertificate = await MongoDBCertificateModel.insertOne(certificate)
-    const cert = insertedCertificate.toJSON() as unknown as WithId<MongoDBCertificate>
-    this.certificatesMap.set(cert.legacyId, cert)
+    const insertedCertificate = await MongoDBCertificateModel.insertOne(data)
+    const certificate = insertedCertificate.toJSON() as unknown as WithId<MongoDBCertificate>
+    this.certificatesMap.set(certificate.legacyId, certificate)
     return true
   }
 
   private async loadCertificates(): Promise<void> {
     const certificates = await this.getAllCertificates()
     certificates.forEach((c) => this.certificatesMap.set(c.legacyId, c))
+  }
+
+  // Additional helper methods
+
+  getCertificateImagePublicIds(): string[] {
+    return Array.from(this.certificatesMap.values()).map(
+      (c) => c.image.split('/').pop()?.split('.').shift() ?? '',
+    )
   }
 }
