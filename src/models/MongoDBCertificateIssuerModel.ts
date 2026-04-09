@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType } from 'mongoose'
+import { MongoDBModelName } from '../enums/MongoDBModelName'
 import type { WithId } from '../types/WithId'
 
 const certificateIssuerSchema = new Schema({
@@ -21,7 +22,7 @@ certificateIssuerSchema.set('toJSON', {
 })
 
 export const MongoDBCertificateIssuerModel = model(
-  'CertificateIssuer',
+  MongoDBModelName.CertificateIssuer,
   certificateIssuerSchema,
   'certificate_issuers',
 )

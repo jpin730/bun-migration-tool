@@ -4,18 +4,25 @@ import {
   MongoDBCertificateCategoryModel,
   type MongoDBCertificateCategory,
 } from '../models/MongoDBCertificateCategoryModel'
-import { MongoDBCertificateIssuerModel } from '../models/MongoDBCertificateIssuerModel'
+import {
+  MongoDBCertificateIssuerModel,
+  type MongoDBCertificateIssuer,
+} from '../models/MongoDBCertificateIssuerModel'
+import { MongoDBCertificateModel, type MongoDBCertificate } from '../models/MongoDBCertificateModel'
+import type { WithId } from '../types/WithId'
 
 export class MongoDBService {
-  private readonly certificateCategoriesSet = new Set<string>()
-  private readonly certificateIssuersSet = new Set<string>()
+  private readonly certificateCategoriesMap = new Map<string, WithId<MongoDBCertificateCategory>>()
+  private readonly certificateIssuersMap = new Map<string, WithId<MongoDBCertificateIssuer>>()
+  private readonly certificatesMap = new Map<string, WithId<MongoDBCertificate>>()
 
   async connect(): Promise<void> {
     const connection = await connect(config.mongoDB.uri)
     await connection.syncIndexes()
     console.info('Connected to MongoDB')
     await this.loadCertificateCategories()
-    await this.loadIssuers()
+    await this.loadCertificateIssuers()
+    await this.loadCertificates()
     console.info('MongoDBService initialized')
   }
 
@@ -26,45 +33,84 @@ export class MongoDBService {
 
   // Certificate Categories Operations
 
-  async getAllCertificateCategories(): Promise<MongoDBCertificateCategory[]> {
-    return MongoDBCertificateCategoryModel.find()
+  async getAllCertificateCategories(): Promise<WithId<MongoDBCertificateCategory>[]> {
+    const categories = await MongoDBCertificateCategoryModel.find()
+    return categories.map((c) => c.toJSON() as unknown as WithId<MongoDBCertificateCategory>)
   }
 
-  async insertCertificateCategories(firebaseCertificates: string[]): Promise<void> {
+  async insertCertificateCategories(
+    firebaseCertificates: string[],
+  ): Promise<WithId<MongoDBCertificateCategory>[]> {
     if (firebaseCertificates.length === 0) {
-      return
+      return []
     }
-    const mongoDBCategories: MongoDBCertificateCategory[] = firebaseCertificates
-      .filter((name) => !this.certificateCategoriesSet.has(name))
-      .map((name) => ({ name }))
-    if (mongoDBCategories.length === 0) {
-      return
+    const existingCategories: WithId<MongoDBCertificateCategory>[] = []
+    const categoryNamesToInsert: string[] = []
+    firebaseCertificates.forEach((name) =>
+      this.certificateCategoriesMap.has(name)
+        ? existingCategories.push(this.certificateCategoriesMap.get(name)!)
+        : categoryNamesToInsert.push(name),
+    )
+    if (categoryNamesToInsert.length === 0) {
+      return existingCategories
     }
-    await MongoDBCertificateCategoryModel.insertMany(mongoDBCategories)
-    mongoDBCategories.forEach((category) => this.certificateCategoriesSet.add(category.name))
+    const insertedCategories =
+      await MongoDBCertificateCategoryModel.insertMany(categoryNamesToInsert)
+    insertedCategories.forEach((c) => {
+      const category = c.toJSON() as unknown as WithId<MongoDBCertificateCategory>
+      this.certificateCategoriesMap.set(category.name, category)
+      existingCategories.push(category)
+    })
+    return existingCategories
   }
 
   private async loadCertificateCategories(): Promise<void> {
     const categories = await this.getAllCertificateCategories()
-    categories.forEach((category) => this.certificateCategoriesSet.add(category.name))
+    categories.forEach((c) => this.certificateCategoriesMap.set(c.name, c))
   }
 
   // Certificate Issuers Operations
 
-  async getAllCertificateIssuers(): Promise<string[]> {
-    return MongoDBCertificateIssuerModel.find()
+  async getAllCertificateIssuers(): Promise<WithId<MongoDBCertificateIssuer>[]> {
+    const issuers = await MongoDBCertificateIssuerModel.find()
+    return issuers.map((issuer) => issuer.toJSON() as unknown as WithId<MongoDBCertificateIssuer>)
   }
 
-  async insertCertificateIssuers(name: string): Promise<void> {
-    if (this.certificateIssuersSet.has(name)) {
-      return
+  async insertCertificateIssuers(name: string): Promise<WithId<MongoDBCertificateIssuer>> {
+    if (this.certificateIssuersMap.has(name)) {
+      return this.certificateIssuersMap.get(name)!
     }
-    await MongoDBCertificateIssuerModel.insertOne({ name })
-    this.certificateIssuersSet.add(name)
+    const insertedIssuer = await MongoDBCertificateIssuerModel.insertOne({ name })
+    const issuer = insertedIssuer.toJSON() as unknown as WithId<MongoDBCertificateIssuer>
+    this.certificateIssuersMap.set(issuer.name, issuer)
+    return issuer
   }
 
-  private async loadIssuers(): Promise<void> {
+  private async loadCertificateIssuers(): Promise<void> {
     const issuers = await this.getAllCertificateIssuers()
-    issuers.forEach((issuer) => this.certificateIssuersSet.add(issuer))
+    issuers.forEach((i) => this.certificateIssuersMap.set(i.name, i))
+  }
+
+  // Certificates Operations
+
+  async getAllCertificates(): Promise<WithId<MongoDBCertificate>[]> {
+    const certificates = await MongoDBCertificateModel.find()
+    return certificates.map((c) => c.toJSON() as unknown as WithId<MongoDBCertificate>)
+  }
+
+  async insertCertificate(certificate: MongoDBCertificate): Promise<boolean> {
+    if (this.certificatesMap.has(certificate.legacyId)) {
+      return false
+    }
+
+    const insertedCertificate = await MongoDBCertificateModel.insertOne(certificate)
+    const cert = insertedCertificate.toJSON() as unknown as WithId<MongoDBCertificate>
+    this.certificatesMap.set(cert.legacyId, cert)
+    return true
+  }
+
+  private async loadCertificates(): Promise<void> {
+    const certificates = await this.getAllCertificates()
+    certificates.forEach((c) => this.certificatesMap.set(c.legacyId, c))
   }
 }

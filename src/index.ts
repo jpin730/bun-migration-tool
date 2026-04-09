@@ -1,3 +1,4 @@
+import { Types } from 'mongoose'
 import { CloudinaryService } from './services/CloudinaryService'
 import { FirebaseService } from './services/FirebaseService'
 import { MongoDBService } from './services/MongoDBService'
@@ -17,12 +18,20 @@ if (certificate) {
   const firebaseCategories = getFirebaseCertificateCategories(certificate)
   const { issuer } = parseFirebaseCertificateId(certificate)
 
-  await Promise.all([
+  const [insertedCategories, insertedIssuer, uploadedImage] = await Promise.all([
     mongoDBService.insertCertificateCategories(firebaseCategories),
     mongoDBService.insertCertificateIssuers(issuer),
+    cloudinaryService.uploadImage(certificate.image),
   ])
 
-  await cloudinaryService.uploadImage(certificate.image)
+  await mongoDBService.insertCertificate({
+    name: certificate.category,
+    legacyId: certificate.id,
+    image: uploadedImage.optimizedUrl,
+    issuedAt: new Date(certificate.date),
+    categories: insertedCategories.map((c) => new Types.ObjectId(c.id)),
+    issuer: new Types.ObjectId(insertedIssuer.id),
+  })
 }
 await mongoDBService.disconnect()
 
