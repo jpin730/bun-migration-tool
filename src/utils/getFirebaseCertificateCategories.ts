@@ -1,9 +1,9 @@
 import type { FirebaseCertificate } from '../interfaces/FirebaseCertificate'
 
 export const getFirebaseCertificateCategories = (
-  firebaseCertificate?: FirebaseCertificate,
+  firebaseCertificate: FirebaseCertificate,
 ): string[] =>
-  firebaseCertificate?.category
+  firebaseCertificate.category
     .split(',')
     .map((category) => category.trim())
     .filter((category) => category.length > 0) ?? []

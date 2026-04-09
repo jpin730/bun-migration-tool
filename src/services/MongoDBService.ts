@@ -27,7 +27,7 @@ export class MongoDBService {
     return MongoDBCertificateCategoryModel.find()
   }
 
-  async insertCertificateCategories(firebaseCertificates?: FirebaseCertificate): Promise<void> {
+  async insertCertificateCategories(firebaseCertificates: FirebaseCertificate): Promise<void> {
     const firebaseCategories = getFirebaseCertificateCategories(firebaseCertificates)
     if (firebaseCategories.length === 0) {
       return
