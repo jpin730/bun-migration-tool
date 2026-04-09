@@ -9,15 +9,15 @@ export class MongoDBService {
 
   async connect(): Promise<void> {
     await connect(config.mongoDB.uri)
-    console.log('Connected to MongoDB')
+    console.info('Connected to MongoDB')
     await this.loadCategories()
-    console.log('Categories loaded into memory')
-    console.log(this.categoriesSet)
+    console.info('Categories loaded into memory')
+    console.info(this.categoriesSet)
   }
 
   async disconnect(): Promise<void> {
     await disconnect()
-    console.log('Disconnected from MongoDB')
+    console.info('Disconnected from MongoDB')
   }
 
   async getAllCategories(): Promise<MongoDBCategory[]> {
