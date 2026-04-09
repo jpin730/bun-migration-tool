@@ -9,7 +9,7 @@ import {
   query,
 } from 'firebase/firestore'
 import { config } from '../consts/config'
-import type { FirebaseCertification } from '../interfaces/FirebaseCertification'
+import type { FirebaseCertificate } from '../interfaces/FirebaseCertificate'
 import type { WithId } from '../types/WithId'
 
 export class FirebaseService {
@@ -27,12 +27,12 @@ export class FirebaseService {
     )
   }
 
-  async getCertifications(): Promise<WithId<FirebaseCertification>[]> {
+  async getCertificates(): Promise<WithId<FirebaseCertificate>[]> {
     const q = query(collection(this.db, this.collections.certifications), orderBy(documentId()))
     const querySnapshot = await getDocsFromServer(q)
     return querySnapshot.docs.map((doc) => {
       const id = doc.id
-      const data = doc.data() as FirebaseCertification
+      const data = doc.data() as FirebaseCertificate
       return { id, ...data }
     })
   }

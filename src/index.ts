@@ -6,8 +6,8 @@ const mongoDBService = new MongoDBService()
 
 await mongoDBService.connect()
 
-const firebaseCertifications = await firebaseService.getCertifications()
-await mongoDBService.insertCategories(firebaseCertifications.at(0))
+const firebaseCertificates = await firebaseService.getCertificates()
+await mongoDBService.insertCertificateCategories(firebaseCertificates.at(0))
 
 await mongoDBService.disconnect()
 

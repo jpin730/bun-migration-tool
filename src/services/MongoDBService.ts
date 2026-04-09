@@ -1,18 +1,21 @@
 import { connect, disconnect } from 'mongoose'
 import { config } from '../consts/config'
-import type { FirebaseCertification } from '../interfaces/FirebaseCertification'
-import { MongoDBCategoryModel, type MongoDBCategory } from '../models/MongoDBCategoryModel'
-import { getFirebaseCategories } from '../utils/getFirebaseCategories'
+import type { FirebaseCertificate } from '../interfaces/FirebaseCertificate'
+import {
+  MongoDBCertificateCategoryModel,
+  type MongoDBCertificateCategory,
+} from '../models/MongoDBCertificateCategoryModel'
+import { getFirebaseCertificateCategories } from '../utils/getFirebaseCertificateCategories'
 
 export class MongoDBService {
   private categoriesSet = new Set<string>()
 
   async connect(): Promise<void> {
-    await connect(config.mongoDB.uri)
+    const connection = await connect(config.mongoDB.uri)
+    await connection.syncIndexes()
     console.info('Connected to MongoDB')
     await this.loadCategories()
-    console.info('Categories loaded into memory')
-    console.info(this.categoriesSet)
+    console.info('MongoDBService initialized')
   }
 
   async disconnect(): Promise<void> {
@@ -20,17 +23,17 @@ export class MongoDBService {
     console.info('Disconnected from MongoDB')
   }
 
-  async getAllCategories(): Promise<MongoDBCategory[]> {
-    return MongoDBCategoryModel.find()
+  async getAllCertificateCategories(): Promise<MongoDBCertificateCategory[]> {
+    return MongoDBCertificateCategoryModel.find()
   }
 
-  async insertCategories(firebaseCertification?: FirebaseCertification): Promise<void> {
-    const firebaseCategories = getFirebaseCategories(firebaseCertification)
+  async insertCertificateCategories(firebaseCertificates?: FirebaseCertificate): Promise<void> {
+    const firebaseCategories = getFirebaseCertificateCategories(firebaseCertificates)
     if (firebaseCategories.length === 0) {
       return
     }
 
-    const mongoDBCategories: MongoDBCategory[] = firebaseCategories
+    const mongoDBCategories: MongoDBCertificateCategory[] = firebaseCategories
       .filter((name) => !this.categoriesSet.has(name))
       .map((name) => ({ name }))
 
@@ -38,16 +41,16 @@ export class MongoDBService {
       return
     }
 
-    await MongoDBCategoryModel.insertMany(mongoDBCategories)
+    await MongoDBCertificateCategoryModel.insertMany(mongoDBCategories)
     this.addCategoriesToSet(mongoDBCategories)
   }
 
-  private addCategoriesToSet(categories: MongoDBCategory[]): void {
+  private addCategoriesToSet(categories: MongoDBCertificateCategory[]): void {
     categories.forEach((category) => this.categoriesSet.add(category.name))
   }
 
   private async loadCategories(): Promise<void> {
-    const categories = await this.getAllCategories()
+    const categories = await this.getAllCertificateCategories()
     this.addCategoriesToSet(categories)
   }
 }
