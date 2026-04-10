@@ -1,7 +1,9 @@
 import { Types } from 'mongoose'
+import type { FirebaseCertificate } from './interfaces/FirebaseCertificate'
 import { CloudinaryService } from './services/CloudinaryService'
 import { FirebaseService } from './services/FirebaseService'
 import { MongoDBService } from './services/MongoDBService'
+import type { WithId } from './types/WithId'
 import { getFirebaseCertificateCategories } from './utils/getFirebaseCertificateCategories'
 import { parseFirebaseCertificateId } from './utils/parseFirebaseCertificateId'
 
@@ -13,10 +15,11 @@ await mongoDBService.connect()
 
 const firebaseCertificates = await firebaseService.getCertificates()
 
-const certificate = firebaseCertificates.at(0)
-if (certificate) {
+const firebaseCertificatesCount = firebaseCertificates.length
+
+const migrateCertificate = async (certificate: WithId<FirebaseCertificate>): Promise<void> => {
   const firebaseCategories = getFirebaseCertificateCategories(certificate)
-  const { issuer } = parseFirebaseCertificateId(certificate)
+  const { issuer, name } = parseFirebaseCertificateId(certificate)
 
   const [insertedCategories, insertedIssuer, uploadedImage] = await Promise.all([
     mongoDBService.insertCertificateCategories(firebaseCategories),
@@ -25,7 +28,7 @@ if (certificate) {
   ])
 
   await mongoDBService.insertCertificate({
-    name: certificate.category,
+    name,
     legacyId: certificate.id,
     image: uploadedImage.optimizedUrl,
     issuedAt: new Date(certificate.date),
@@ -34,14 +37,32 @@ if (certificate) {
   })
 }
 
+for (let i = 0; i < firebaseCertificatesCount; i++) {
+  const certificate = firebaseCertificates.at(i)!
+  console.info(`Processing ${i + 1}/${firebaseCertificatesCount}`)
+  if (mongoDBService.existsCertificate(certificate.id)) {
+    continue
+  }
+
+  try {
+    await migrateCertificate(certificate)
+  } catch (error) {
+    console.info('Error:', error)
+  }
+}
+
 await mongoDBService.disconnect()
 
-const mongoDBImagePublicIds = mongoDBService.getCertificateImagePublicIds()
-const cloudinaryImages = await cloudinaryService.getAllImages()
-const imagePublicIdsToDelete = cloudinaryImages
-  .filter(({ public_id }) => !mongoDBImagePublicIds.includes(public_id))
-  .map(({ public_id }) => public_id)
+const cleanupCloudinary = async (): Promise<void> => {
+  const mongoDBImagePublicIds = mongoDBService.getCertificateImagePublicIds()
+  const cloudinaryImages = await cloudinaryService.getAllImages()
+  const imagePublicIdsToDelete = cloudinaryImages
+    .filter(({ public_id }) => !mongoDBImagePublicIds.includes(public_id))
+    .map(({ public_id }) => public_id)
 
-await cloudinaryService.deleteImages(imagePublicIdsToDelete)
+  await cloudinaryService.deleteImages(imagePublicIdsToDelete)
+}
+
+await cleanupCloudinary()
 
 process.exit(0)

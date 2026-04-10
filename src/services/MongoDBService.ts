@@ -54,12 +54,13 @@ export class MongoDBService {
     if (categoryNamesToInsert.length === 0) {
       return existingCategories
     }
-    const insertedCategories =
-      await MongoDBCertificateCategoryModel.insertMany(categoryNamesToInsert)
+    const categoriesToInsert = categoryNamesToInsert.map((name) => ({ name }))
+    const insertedCategories = await MongoDBCertificateCategoryModel.insertMany(categoriesToInsert)
     insertedCategories.forEach((c) => {
       const category = c.toJSON() as unknown as WithId<MongoDBCertificateCategory>
       this.certificateCategoriesMap.set(category.name, category)
       existingCategories.push(category)
+      console.info(`Inserted new category: ${category.name}`)
     })
     return existingCategories
   }
@@ -83,6 +84,7 @@ export class MongoDBService {
     const insertedIssuer = await MongoDBCertificateIssuerModel.insertOne({ name })
     const issuer = insertedIssuer.toJSON() as unknown as WithId<MongoDBCertificateIssuer>
     this.certificateIssuersMap.set(issuer.name, issuer)
+    console.info(`Inserted new issuer: ${issuer.name}`)
     return issuer
   }
 
@@ -106,6 +108,7 @@ export class MongoDBService {
     const insertedCertificate = await MongoDBCertificateModel.insertOne(data)
     const certificate = insertedCertificate.toJSON() as unknown as WithId<MongoDBCertificate>
     this.certificatesMap.set(certificate.legacyId, certificate)
+    console.info(`Inserted new certificate: ${certificate.name}`)
     return true
   }
 
@@ -115,6 +118,10 @@ export class MongoDBService {
   }
 
   // Additional helper methods
+
+  existsCertificate(legacyId: string): boolean {
+    return this.certificatesMap.has(legacyId)
+  }
 
   getCertificateImagePublicIds(): string[] {
     return Array.from(this.certificatesMap.values()).map(
