@@ -1,4 +1,8 @@
-import { v2 as cloudinary, type ResourceApiResponse } from 'cloudinary'
+import {
+  v2 as cloudinary,
+  type AdminAndResourceOptions,
+  type ResourceApiResponse,
+} from 'cloudinary'
 import { config } from '../consts/config'
 import type { CloudinaryUploadApiResponse } from '../interfaces/CloudinaryUploadApiResponse'
 
@@ -14,9 +18,29 @@ export class CloudinaryService {
     })
   }
 
+  async getImagesByCursor(nextCursor: string | null): Promise<ResourceApiResponse> {
+    const CLOUDINARY_MAX_RESULTS = 500
+    const options: AdminAndResourceOptions = {
+      max_results: CLOUDINARY_MAX_RESULTS,
+      asset_folder: this.assetFolder,
+    }
+    if (nextCursor) {
+      options.next_cursor = nextCursor
+    }
+    return await cloudinary.api.resources(options)
+  }
+
   async getAllImages(): Promise<ResourceApiResponse['resources']> {
-    const { resources } = await cloudinary.api.resources_by_asset_folder(this.assetFolder)
-    return resources
+    const images: ResourceApiResponse['resources'] =
+      [] as unknown as ResourceApiResponse['resources']
+    let nextCursor: string | null = null
+
+    do {
+      const { resources, next_cursor } = await this.getImagesByCursor(nextCursor)
+      images.push(...resources)
+      nextCursor = next_cursor ?? null
+    } while (nextCursor !== null)
+    return images
   }
 
   async uploadImage(filePath: string): Promise<CloudinaryUploadApiResponse> {
@@ -37,5 +61,6 @@ export class CloudinaryService {
       return
     }
     await cloudinary.api.delete_resources(publicIds)
+    console.info(`Deleted ${publicIds.length} images from Cloudinary`)
   }
 }
