@@ -5,9 +5,8 @@ import type { WithId } from '../types/WithId'
 export const parseFirebaseCertificateId = (
   firebaseCertificate: WithId<FirebaseCertificate>,
 ): ParsedFirebaseCertificateId => {
-  const regex = /^([A-Z-]+)-\d{4}-\d{2}-\d{2}-([A-Z-]+)$/
   const id = firebaseCertificate.id.toUpperCase().replaceAll('_', '-')
-  const matches = id.match(regex)
+  const matches = id.match(/^(\S+)-\d{4}-\d{2}-\d{2}-(\S+)$/)
   const [, issuer, name] = matches ?? []
   if (!issuer || !name) {
     throw new Error(`Invalid certificate ID format: ${firebaseCertificate.id}`)
